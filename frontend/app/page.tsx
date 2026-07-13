@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+
+import WasteClassifier from "@/components/WasteClassifier";
 
 export default function Home() {
-  const [showDemoResult, setShowDemoResult] = useState(false);
-
   return (
     <main>
       <header className="topbar">
@@ -27,9 +26,9 @@ export default function Home() {
           <a href="#impacto">Impacto</a>
         </nav>
 
-        <button className="header-button" type="button">
+        <a className="header-button" href="#clasificador">
           Iniciar clasificación
-        </button>
+        </a>
       </header>
 
       <section className="hero" id="inicio">
@@ -140,82 +139,21 @@ export default function Home() {
           <span className="eyebrow">CLASIFICADOR VISUAL</span>
           <h2>¿Tienes un residuo a la mano?</h2>
           <p>
-            Aquí conectaremos la cámara del dispositivo. Por ahora, esta
-            maqueta representa la experiencia que verá el usuario final.
+            Activa la cámara de tu dispositivo, muestra el objeto y EcoSorter lo
+            enviará al backend para detectarlo y sugerir el contenedor correcto.
           </p>
 
           <div className="privacy-note">
             <span>🔒</span>
             <p>
-              Tus imágenes se procesarán únicamente para realizar la
-              clasificación del residuo.
+              Tus imágenes se procesan únicamente para clasificar el residuo y no
+              se almacenan permanentemente.
             </p>
           </div>
         </div>
 
-        <div className="classifier-panel">
-          <div className="camera-preview">
-            <div className="camera-grid"></div>
-
-            <div className="camera-content">
-              <span className="camera-icon">◉</span>
-              <h3>Cámara lista para clasificar</h3>
-              <p>Ubica el residuo en el centro del recuadro.</p>
-            </div>
-
-            <div className="camera-corner top-left"></div>
-            <div className="camera-corner top-right"></div>
-            <div className="camera-corner bottom-left"></div>
-            <div className="camera-corner bottom-right"></div>
-          </div>
-
-          <button
-            className="scan-button"
-            type="button"
-            onClick={() => setShowDemoResult(!showDemoResult)}
-          >
-            {showDemoResult
-              ? "Ocultar resultado de ejemplo"
-              : "Simular clasificación"}
-          </button>
-        </div>
+        <WasteClassifier />
       </section>
-
-      {showDemoResult && (
-        <section className="result-section" aria-live="polite">
-          <div className="result-card">
-            <div className="result-title">
-              <span className="result-icon">♻</span>
-              <div>
-                <span className="eyebrow">RESULTADO DE EJEMPLO</span>
-                <h2>Botella plástica PET</h2>
-              </div>
-            </div>
-
-            <div className="result-grid">
-              <div>
-                <span className="result-label">CONTENEDOR RECOMENDADO</span>
-                <strong className="bin-badge">Blanco</strong>
-              </div>
-
-              <div>
-                <span className="result-label">TIPO DE MATERIAL</span>
-                <strong>Aprovechable</strong>
-              </div>
-
-              <div>
-                <span className="result-label">PREPARACIÓN</span>
-                <strong>Limpia, seca y sin tapa</strong>
-              </div>
-            </div>
-
-            <p className="result-message">
-              Retira los residuos de líquido o comida. Luego aplasta la botella
-              para ocupar menos espacio y deposítala en el contenedor blanco.
-            </p>
-          </div>
-        </section>
-      )}
 
       <section className="impact-section" id="impacto">
         <div>
