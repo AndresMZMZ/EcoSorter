@@ -1,11 +1,23 @@
 import base64
 import json
 import os
+import time
+from dataclasses import dataclass
 from dotenv import load_dotenv
 
 import google.generativeai as genai
 
 from app.schemas.detection import Coordenadas, Deteccion, DeteccionResponse
+
+
+@dataclass
+class GeminiMetadata:
+    """Metadatos de una llamada a la API de Gemini."""
+    latencia_ms: float
+    tokens_entrada: int
+    tokens_salida: int
+    costo_estimado_usd: float
+
 
 _SYSTEM_PROMPT = """\
 Eres un experto en clasificación de residuos sólidos urbanos. Tu única función es \
@@ -69,14 +81,15 @@ class GeminiClassificationService:
         )
         self._initialized = True
 
-    def classify(self, image_base64: str) -> DeteccionResponse:
+    def classify(self, image_base64: str) -> tuple[DeteccionResponse, GeminiMetadata | None]:
         empty = DeteccionResponse(detecciones=[], frame_base64=None)
+        empty_metadata = GeminiMetadata(latencia_ms=0, tokens_entrada=0, tokens_salida=0, costo_estimado_usd=0)
 
         if self._model is None:
             return DeteccionResponse(
                 detecciones=[], frame_base64=None,
                 error="GEMINI_API_KEY no está configurada. Agrécala al archivo .env.",
-            )
+            ), None
 
         try:
             payload = image_base64.strip()
@@ -85,9 +98,12 @@ class GeminiClassificationService:
 
             image_part = {"inline_data": {"mime_type": "image/jpeg", "data": payload}}
 
+            start_time = time.time()
             response = self._model.generate_content(
                 [image_part, "Clasifica los residuos visibles en esta imagen."]
             )
+            end_time = time.time()
+            latencia_ms = (end_time - start_time) * 1000
 
             text = response.text.strip()
 
@@ -98,11 +114,26 @@ class GeminiClassificationService:
 
             data = json.loads(text)
             items = data.get("items", [])
+
+            # Capturar tokens de la respuesta
+            tokens_entrada = response.usage_metadata.prompt_token_count if hasattr(response, 'usage_metadata') else 0
+            tokens_salida = response.usage_metadata.candidates_token_count if hasattr(response, 'usage_metadata') else 0
+            
+            # Calcular costo estimado (precios aproximados de Gemini Flash)
+            # Input: $0.075 por 1M tokens, Output: $0.30 por 1M tokens
+            costo_estimado_usd = (tokens_entrada * 0.075 / 1_000_000) + (tokens_salida * 0.30 / 1_000_000)
+
+            metadata = GeminiMetadata(
+                latencia_ms=latencia_ms,
+                tokens_entrada=tokens_entrada,
+                tokens_salida=tokens_salida,
+                costo_estimado_usd=costo_estimado_usd,
+            )
         except Exception as exc:
             return DeteccionResponse(
                 detecciones=[], frame_base64=None,
                 error=f"Error al consultar Gemini: {exc}",
-            )
+            ), None
 
         detecciones: list[Deteccion] = []
         cero = Coordenadas(x1=0, y1=0, x2=0, y2=0)
@@ -121,7 +152,7 @@ class GeminiClassificationService:
                 )
             )
 
-        return DeteccionResponse(detecciones=detecciones, frame_base64=None)
+        return DeteccionResponse(detecciones=detecciones, frame_base64=None), metadata
 
 
 def _categoria_label(color_caja: str) -> str:

@@ -10,6 +10,7 @@ from app.schemas.detection import DeteccionResponse, ImageDetectRequest
 from app.services.camera_service import camera_service
 from app.services.detection_service import detection_service
 from app.services.gemini_service import gemini_service
+from app.services.supabase_service import supabase_service
 
 router = APIRouter(prefix="/detect", tags=["Detección"])
 
@@ -124,7 +125,24 @@ async def detect_with_gemini(request: ImageDetectRequest):
         )
 
     try:
-        return gemini_service.classify(request.image_base64)
+        start_time = time.time()
+        response, metadata = gemini_service.classify(request.image_base64)
+        
+        if metadata and response.detecciones:
+            # Obtener el objeto detectado principal
+            objeto_detectado = response.detecciones[0].nombre if response.detecciones else "Desconocido"
+            
+            # Registrar métricas en Supabase
+            supabase_service.registrar_metrica(
+                objeto_detectado=objeto_detectado,
+                latencia_yolo_ms=0,  # Este endpoint no usa YOLO
+                latencia_gemini_ms=metadata.latencia_ms,
+                tokens_entrada=metadata.tokens_entrada,
+                tokens_salida=metadata.tokens_salida,
+                costo_estimado_usd=metadata.costo_estimado_usd,
+            )
+        
+        return response
     except json.JSONDecodeError as exc:
         raise HTTPException(
             status_code=502,

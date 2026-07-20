@@ -86,6 +86,24 @@ function pickBest(detections: Deteccion[]): Deteccion[] {
   return [...detections].sort((a, b) => b.confianza - a.confianza);
 }
 
+function speakText(text: string, lang: string = "es-CO"): void {
+  if (!("speechSynthesis" in window)) {
+    console.warn("Web Speech API no está disponible en este navegador.");
+    return;
+  }
+
+  // Cancelar cualquier speech anterior
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+
+  window.speechSynthesis.speak(utterance);
+}
+
 export default function WasteClassifier() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -267,7 +285,16 @@ export default function WasteClassifier() {
             if (geminiResult.error) {
               setError(geminiResult.error);
             }
-            if(geminiResult.detecciones.length > 0) startCooldown(cooldownEndRef, setCooldownRemaining, COOLDOWN_SECONDS, setCooldownDuration);
+            if(geminiResult.detecciones.length > 0) {
+              startCooldown(cooldownEndRef, setCooldownRemaining, COOLDOWN_SECONDS, setCooldownDuration);
+              
+              // Reproducir instrucciones por voz
+              const primary = geminiResult.detecciones[0];
+              if (primary.recomendacion) {
+                const voiceMessage = `${primary.nombre}. ${primary.recomendacion}`;
+                speakText(voiceMessage);
+              }
+            }
             setDetecciones(pickBest(geminiResult.detecciones));
           })
           .catch((geminiError) => {
