@@ -16,12 +16,28 @@ router = APIRouter(prefix="/detect", tags=["Detección"])
 
 
 def _build_response(frame, include_frame: bool) -> DeteccionResponse:
+    start_time = time.time()
     detecciones = detection_service.detect(frame)
+    latencia_yolo_ms = (time.time() - start_time) * 1000.0
     frame_base64 = None
 
     if include_frame:
         annotated = detection_service.draw_detections(frame, detecciones)
         frame_base64 = detection_service.frame_to_base64(annotated)
+
+    if detecciones:
+        objeto_detectado = detecciones[0].nombre
+        try:
+            supabase_service.registrar_metrica(
+                objeto_detectado=objeto_detectado,
+                latencia_yolo_ms=latencia_yolo_ms,
+                latencia_gemini_ms=0.0,
+                tokens_entrada=0,
+                tokens_salida=0,
+                costo_estimado_usd=0.0,
+            )
+        except Exception as exc:
+            print(f"[SUPABASE LOG] Excepción no bloqueante al registrar métrica YOLO: {exc}")
 
     return DeteccionResponse(detecciones=detecciones, frame_base64=frame_base64)
 
