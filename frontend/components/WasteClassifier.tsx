@@ -260,12 +260,14 @@ export default function WasteClassifier() {
 
         if (!primary) {
           setDetecciones([]);
+          speakText("No se encontró ningún objeto en cámara.");
           return;
         }
 
         if (primary.confianza < GEMINI_MIN_CONFIDENCE) {
           setDetecciones([]);
           setLowConfidenceScan(true);
+          speakText("La imagen no es lo suficientemente clara. No se pudo clasificar.");
           return;
         }
 
@@ -273,6 +275,10 @@ export default function WasteClassifier() {
           setDetecciones(sorted);
           lastDetectionNameRef.current = primary.nombre;
           startCooldown(cooldownEndRef, setCooldownRemaining, COOLDOWN_SECONDS_HIGH, setCooldownDuration);
+          const voiceMessage = primary.recomendacion 
+            ? `${primary.nombre}. ${primary.recomendacion}`
+            : `${primary.nombre}. Depositar en contenedor de color ${primary.color_caja}.`;
+          speakText(voiceMessage);
           return;
         }
 
