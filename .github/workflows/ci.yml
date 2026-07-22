@@ -26,7 +26,7 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        cd backend && pytest app/tests/ --cov=app --cov-report=term-missing --cov-fail-under=50 || echo "Sin pruebas aún. Cobertura >= 50% requerida en Sprint 1."
+        cd backend && pytest tests/ --cov=app --cov-report=term-missing --cov-fail-under=50
 
   frontend-build:
     runs-on: ubuntu-latest
